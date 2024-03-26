@@ -15,5 +15,4 @@ Rules for Falcon & Hunter pieces:
 - Hunters: Move forward like a rook, backwards like a bishop
 - Neither piece can move along rank (row)
 
-The game is designed to be run as an interactive script, meaning it will ask the user to input moves for each turn
-The game will print the initial board, print an updated board upon a successful made move or return an error and re-prompt the user for a correct move
+
