@@ -1,805 +1,753 @@
-# Author: Anish Ramanadham
-# Github username: ARamanadham
-# Description: Create a functional chess game, based on the falcon-hunter rule variation,
-# check README for more information
+# Programmer(s): Anish Ramanadham
+# Github Username: ARamanadham
+# Description: A functional chess game with slightly modified ruleset (see README for more information)
+
+class GameError(Exception):
+    """Custom exception class for Chessboard-related errors"""
+    pass
+
+
 class GameManager:
     """
-    The GameManager class manages the state of the chess game including:
-    holds the name of pieces for each player
-    the turn count
-    the current player information
-    a list of tuples indicating captured pieces and the turn they were captured on
-    a mapping of rows/columns with 0 based indexing
-    the state of the game ('UNFINISHED', 'WHITE_WON', 'BLACK_WON'
-
-    these methods are all classmethods which allow for the methods to be used by other classes without creating an
-    instance of the class, this is because they do not rely on any class specific information
-    though some may be initialized in order to maintain accuracy
-
-    Implemented as I ran into a recursion error
+    Helper class made up of class methods designed to:
+    Keep track of the turn count
+    Keep track of current player
+    Sets of piece names for each player
+    A list of tuples indicated captured pieces and the turn they were captured on for each player
+    Hold a mapping of rows/column labels for 0-based indexing
+    The overall state of the game
     """
-
-    # Pre-initialized variables
-    _white_pieces = {'K', 'Q', 'R', 'B', 'N', 'P', 'F', 'H'}
-    _black_pieces = {'k', 'q', 'r', 'b', 'n', 'p', 'f', 'H'}
-    _turn_counter = 1
+    # pre-initialized variables
     _current_player = 'WHITE'
-    _columns = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5, 'g': 6, 'h': 7}
-    _rows = {'1': 7, '2': 6, '3': 5, '4': 4, '5': 3, '6': 2, '7': 1, '8': 0}
-    _captured_pieces = []
+    _turn_count = 1
+    _white_pieces = {'P', 'R', 'N', 'B', 'Q', 'K', 'F', 'H'}
+    _black_pieces = {'p', 'r', 'n', 'b', 'q', 'k', 'f', 'h'}
+    _captured_white_pieces = []
+    _captured_black_pieces = []
+    _column_mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7}
+    _row_mapping = {'1': 7, '2': 6, '3': 5, '4': 4, '5': 3, '6': 2, '7': 1, '8': 0}
     _game_state = 'UNFINISHED'
-
-    @classmethod
-    def get_columns(cls):
-        """
-        :return: column index mapping to be used by other classes
-        """
-        return cls._columns
-
-    @classmethod
-    def get_rows(cls):
-        """
-        :return: row index mapping to be used by other classes
-        """
-        return cls._rows
-
-    @classmethod
-    def set_captured_pieces(cls, piece_name, turn_counter):
-        """
-        adds a tuple (piece, turn number piece was captured on) to the captured pieces list
-        :param piece_name: name of the piece that was captured
-        :param turn_counter: the turn it was captured on
-        :return: updates the list of captured pieces
-        """
-        cls._captured_pieces.append((piece_name, turn_counter))
-
-    @classmethod
-    def get_captured_pieces(cls):
-        """
-        :return: list of tuples (captured piece name, turn number it was lost on) for use by other classes
-        """
-        return cls._captured_pieces
 
     @classmethod
     def set_current_player(cls):
         """
-        :return: Based on the turn counter, returns whose turn it is (odd turn count = 'WHITE', even = 'BLACK')
+        :return: Updates the current player based on the turn count, odd turns are white players turns, evens are black
         """
-        cls._current_player = 'WHITE' if cls._turn_counter % 2 == 1 else 'BLACK'
+        cls._current_player = 'WHITE' if cls._turn_count % 2 == 1 else 'BLACK'
 
     @classmethod
     def get_current_player(cls):
         """
-        :return: returns 'WHITE' or 'BLACK' depending on whose turn it is
+        :return: 'WHITE' or 'BLACK' depending on whose turn it is
         """
         return cls._current_player
 
     @classmethod
-    def set_turn_counter(cls):
+    def set_turn_count(cls):
         """
-        :param turn_counter: the turn counter, setting it to the updated value after every move call
-        :return: updates turn counter
+        :return: Increments the turn count by 1
         """
-        cls._turn_counter += 1
+        cls._turn_count += 1
 
     @classmethod
-    def get_turn_counter(cls):
+    def get_turn_count(cls):
         """
-        :return: Returns the turn count to be used in other classes
+        :return: Current turn number
         """
-        return cls._turn_counter
-
-    @classmethod
-    def set_game_state(cls):
-        """
-        :return: Updates the state of the game based on the list of captured pieces
-        """
-        game_state = 'UNFINISHED'
-        captured_pieces = cls.get_captured_pieces()
-        for piece, _ in captured_pieces:
-            if piece == 'k':
-                game_state = 'WHITE_WON'
-            elif piece == 'K':
-                game_state = 'BLACK_WON'
-        cls._game_state = game_state
-
-    @classmethod
-    def get_game_state(cls):
-        """
-        :return: 'UNFINISHED', 'WHITE_WON', 'BLACK_WON' based on state of the game
-        """
-        return cls._game_state
+        return cls._turn_count
 
     @classmethod
     def get_white_pieces(cls):
         """
-        :return: list of white players pieces
+        :return: set of white piece names
         """
         return cls._white_pieces
 
     @classmethod
     def get_black_pieces(cls):
         """
-        :return: list of black players pieces
+        :return: Set of black piece names
         """
         return cls._black_pieces
 
     @classmethod
-    def set_reset_game(cls):
+    def set_captured_pieces(cls, piece_name, turn_count):
         """
-        :return: Resets turn counter to 1
+        adds a tuple (piece_name, turn_count) to the appropriate captured pieces dictionary
+        :param piece_name: Name of the piece that was captured, uppercase indicates white player piece, lowercase black
+        :param turn_count: The turn the piece was captured on
+        :return: updates the appropriate captured pieces list
         """
-        cls._turn_counter = 1
+        if piece_name in cls._white_pieces:
+            cls._captured_white_pieces.append((piece_name, turn_count))
+        else:
+            cls._captured_black_pieces.append((piece_name, turn_count))
+
+    @classmethod
+    def get_captured_white_pieces(cls):
+        """
+        :return: a list of tuples containing piece name + turn the piece was captured on
+        """
+        return cls._captured_white_pieces
+
+    @classmethod
+    def get_captured_black_pieces(cls):
+        """
+        :return: a list of tuples containing piece name + turn the piece was captured on
+        """
+        return cls._captured_black_pieces
+
+    @classmethod
+    def get_column_mapping(cls):
+        """
+        :return: 0-based index column mapping
+        """
+        return cls._column_mapping
+
+    @classmethod
+    def get_row_mapping(cls):
+        """
+        :return: 0-based index row mapping
+        """
+        return cls._row_mapping
+
+    @classmethod
+    def set_game_state(cls):
+        """
+        :return: Updates the state of the game based on captured pieces
+        """
+        game_state = 'UNFINISHED'
+        if any(piece[0] == 'K' for piece in cls._captured_white_pieces):
+            game_state = 'BLACK_WON'
+        if any(piece[0] == 'k' for piece in cls._captured_black_pieces):
+            game_state = 'WHITE_WON'
+        cls._game_state = game_state
+
+    @classmethod
+    def get_game_state(cls):
+        """
+        :return: 'UNFINISHED', 'WHITE_WON', 'BLACK_WON'
+        """
+        return cls._game_state
+
+    @classmethod
+    def reset_game(cls):
+        """
+        :return: resets game everytime a new instance of the game is called
+        """
         cls._current_player = 'WHITE'
-        cls._captured_pieces = []
+        cls._turn_count = 1
+        cls._captured_white_pieces = []
+        cls._captured_black_pieces = []
         cls._game_state = 'UNFINISHED'
 
 
 class Pieces:
     """
-    The pieces class is used to check if a move is legal or not by:
-    Checking that the source square piece is an actual piece
-    Checking that the destination square is either empty or contains a piece from the opposing player
-    Validating that the move from the source square to the destination square is legal by piece logic
+    The pieces class just checks if the move we are trying to make is legal or not.
+    More specifically, it only checks if it is possible to get from the source square to destination square based on,
+    The name of the piece and the expected movement of the piece. It does not check if the move can be made
     """
 
     def __init__(self):
         """
-        Initializes variables for:
-        the row and column mapping of Game Manager,
-        the current player,
-        and the player piece dictionaries
+        Initializes variables for row/column mapping and player pieces
         """
-        self._columns = GameManager.get_columns()
-        self._rows = GameManager.get_rows()
+        self._columns = GameManager.get_column_mapping()
+        self._rows = GameManager.get_row_mapping()
         self._white_pieces = GameManager.get_white_pieces()
         self._black_pieces = GameManager.get_black_pieces()
 
-    def get_valid_move(self, source_piece, destination_piece, source_square, dest_square):
+    def get_valid_move(self, source_piece, dest_piece, source_square, dest_square):
         """
-        Checks the piece_name from chessboard to call the appropriate valid move method
-        :param source_piece: Piece that we are checking for move validity
-        :param destination_piece: Piece or '_' at the square we are moving to
+        Checks the piece and location information to call the appropriate valid move method
+        :param source_piece: piece we are checking move validity for
+        :param dest_piece: piece or '_' at the square we are moving to
         :param source_square: location on chessboard we are moving from
         :param dest_square: location on chessboard we are moving to
-        :return: True if move is valid, False otherwise
+        :return: True if valid, False otherwise
         """
-        # getting current player information
-        current_player = GameManager.get_current_player()
-
-        # If the current player is trying to move their opponents piece, return false
+        # Checking that if there is a piece at the dest_square, that it does not belong to current player
         if (
-                (current_player == 'WHITE' and source_piece.islower()) or
-                (current_player == 'BLACK' and source_piece.isupper())
+                (GameManager.get_current_player() == 'WHITE' and dest_piece.isupper()) or
+                (GameManager.get_current_player() == 'BLACK' and dest_piece.islower())
         ):
-            return False
+            raise GameError(f"Move cannot be made the {dest_piece} at {dest_square} belongs to you.")
 
-        # if the destination piece belongs to the current player, we can't move there, return False
-        if (
-                (current_player == 'WHITE' and destination_piece.isupper()) or
-                (current_player == 'BLACK' and destination_piece.islower())
-        ):
-            return False
-
-        # Use the piece name to call the individual valid move methods
+        # using piece name to call individual valid move methods
         if source_piece.upper() == 'P':
-            return self.valid_pawn_move(source_square, dest_square, destination_piece)
-        elif source_piece.upper() == 'R':
-            return self.valid_rook_move(source_square, dest_square)
-        elif source_piece.upper() == 'B':
-            return self.valid_bishop_move(source_square, dest_square)
-        elif source_piece.upper() == 'N':
-            return self.valid_knight_move(source_square, dest_square)
-        elif source_piece.upper() == 'Q':
-            return self.valid_queen_move(source_square, dest_square)
-        elif source_piece.upper() == 'K':
-            return self.valid_king_move(source_square, dest_square)
-        elif source_piece.upper() == 'F':
-            return self.valid_falcon_move(current_player, source_square, dest_square)
-        elif source_piece.upper() == 'H':
-            return self.valid_hunter_move(current_player, source_square, dest_square)
-        else:
-            # If there is no source piece ('_') return False
-            return False
+            return self.valid_pawn_move(source_square, dest_square, dest_piece)
+        if source_piece.upper() == 'R':
+            return self.valid_rook_move(source_square, dest_square, dest_piece)
+        if source_piece.upper() == 'B':
+            return self.valid_bishop_move(source_square, dest_square, dest_piece)
+        if source_piece.upper() == 'N':
+            return self.valid_knight_move(source_square, dest_square, dest_piece)
+        if source_piece.upper() == 'Q':
+            return self.valid_queen_move(source_square, dest_square, dest_piece)
+        if source_piece.upper() == 'K':
+            return self.valid_king_move(source_square, dest_square, dest_piece)
+        if source_piece.upper() == 'F':
+            return self.valid_falcon_move(source_square, dest_square, dest_piece)
+        if source_piece.upper() == 'H':
+            return self.valid_hunter_move(source_square, dest_square, dest_piece)
 
-    def valid_pawn_move(self, source, destination, destination_piece):
+    def valid_pawn_move(self, source, destination, dest_piece):
         """
-        Checks that a pawn is capable of moving from the source square to the destination square
-        Requirements:
-        Current player determines the move direction, Black moves down (positive); White moves up (Negative)
-        If the pawn has not moved from the source row (Black 1, White 6) it can move 2 spaces
-        If it is attempting a diagonal movement it can only do so in the correct direction
-        :param source: location the pawn is currently at
-        :param destination: location the pawn is attempting to move to
-        :return: True if possible, False otherwise
+        Checks pawn movement from the source to the destination
+        Special parameters for pawns: Can only capture diagonally, forward movement only to '_' spaces
+        :param source: location pawn is currently at
+        :param destination: location pawn is attempting to move to
+        :param dest_piece: True if possible, False otherwise
+        :return:
         """
-        # capturing row and column information for source and destination squares
-        source_row = self._rows[source[1]]
+        # Row and column mapping for source and destination squares
         source_col = self._columns[source[0]]
-        dest_row = self._rows[destination[1]]
+        source_row = self._rows[source[1]]
         dest_col = self._columns[destination[0]]
+        dest_row = self._rows[destination[1]]
 
-        # setting the direction pawn is allowed to move in based on whose turn it is
+        # Determine the direction based on current player, since rows are mapped in reverse White direction is neg
         if GameManager.get_current_player() == 'WHITE':
             direction = -1
         else:
             direction = 1
 
-        # check if the pawn is moving forward
+        # Checking pawn vertical movement
         if dest_col == source_col:
-            if dest_row == source_row + direction:
+            if dest_row == source_row + direction and dest_piece == '_':
                 return True
-            # Checking if pawn is moving two squares from its starting location
             elif (
                     (GameManager.get_current_player() == 'WHITE' and source_row == 6) or
                     (GameManager.get_current_player() == 'BLACK' and source_row == 1)
             ):
-                if dest_row == source_row + 2 * direction:
+                # checking that no piece is in the way
+                if dest_row == source_row + 2 * direction and dest_piece == '_':
                     return True
 
-        # Checking that diagonal movement is only one row away in appropriate direction
+        # Checking pawn diagonal movement
         if abs(dest_col - source_col) == 1 and dest_row == source_row + direction:
-            if destination_piece != '_':
-                return True
-        return False
+            if dest_piece != '_':
+                if (
+                        (GameManager.get_current_player() == 'WHITE' and dest_piece not in self._white_pieces) or
+                        (GameManager.get_current_player() == 'BLACK' and dest_piece not in self._black_pieces)
+                ):
+                    return True
+        raise GameError("Not a valid Pawn move")
 
-    def valid_rook_move(self, source, destination):
+    def valid_rook_move(self, source, destination, dest_piece):
         """
         Checks that a rook is capable of moving from the source square to the destination square
-        rook movement is only along rows or columns, no specific player restrictions
+        Special parameters for rooks: Can only move along column or rank (row)
         :param source: location the rook is currently at
         :param destination: location the rook is attempting to move to
-        :return: True if possible, False otherwise
+        :param dest_piece: Piece at destination
+        :return: True if valid move, False otherwise
         """
-        # capturing row and column information for source and destination squares
-        source_row = self._rows[source[1]]
+        # Row and column mapping for source and destination squares
         source_col = self._columns[source[0]]
-        dest_row = self._rows[destination[1]]
+        source_row = self._rows[source[1]]
         dest_col = self._columns[destination[0]]
+        dest_row = self._rows[destination[1]]
 
-        # Checking if rook is moving along a row
+        # Checking if rook is moving along a rank or column
         if source_row == dest_row:
-            return True
-        # Checking if rook is moving along a column
+            # check piece at destination does not belong to the current player
+            if (
+                    (GameManager.get_current_player() == 'WHITE' and dest_piece not in self._white_pieces) or
+                    (GameManager.get_current_player() == 'BLACK' and dest_piece not in self._black_pieces)
+            ):
+                return True
         elif source_col == dest_col:
-            return True
+            if (
+                    (GameManager.get_current_player() == 'WHITE' and dest_piece not in self._white_pieces) or
+                    (GameManager.get_current_player() == 'BLACK' and dest_piece not in self._black_pieces)
+            ):
+                return True
         else:
-            return False
+            raise GameError("Not a valid Rook Move")
 
-    def valid_bishop_move(self, source, destination):
+    def valid_bishop_move(self, source, destination, dest_piece):
         """
-        Checks that a bishop is capable of moving from the source square to the destination square
-        bishop movement is only along diagonals, no specific player restrictions
-        :param source: location the rook is currently at
-        :param destination: location the rook is attempting to move to
-        :return: True if possible, False otherwise
+        Checks that a bishop is capable of moving from source to destination squares
+        Special parameters for bishop: Only can move along diagonals
+        :param source: location the bishop is currently at
+        :param destination: location the bishop is attempting to move to
+        :param dest_piece: Piece at destination
+        :return: True if valid move, False otherwise
         """
-        # capturing row and column information for source and destination squares
-        source_row = self._rows[source[1]]
+        # Row and column mapping for source and destination squares
         source_col = self._columns[source[0]]
-        dest_row = self._rows[destination[1]]
+        source_row = self._rows[source[1]]
         dest_col = self._columns[destination[0]]
+        dest_row = self._rows[destination[1]]
 
-        # Check if movement is along the diagonal path
+        # Check movement is along diagonal path
         if abs(dest_row - source_row) == abs(dest_col - source_col):
-            return True
+            # check piece at destination does not belong to the current player
+            if (
+                    (GameManager.get_current_player() == 'WHITE' and dest_piece not in self._white_pieces) or
+                    (GameManager.get_current_player() == 'BLACK' and dest_piece not in self._black_pieces)
+            ):
+                return True
         else:
-            return False
+            raise GameError("Not a valid Bishop Move")
 
-    def valid_knight_move(self, source, destination):
+    def valid_knight_move(self, source, destination, dest_piece):
         """
-        Checks that a knight is capable of moving from the source square to the destination square
-        knight move in an L shape: move two spaces (vertically or horizontally) and then one space perpendicular to that
-        no specific player restrictions
-        :param source: location the rook is currently at
-        :param destination: location the rook is attempting to move to
-        :return: True if possible, False otherwise
+        Checks that a knight is capable of moving from source to destination squares
+        Special parameters for knight: Only can move in an L shape
+        :param source: location the knight is currently at
+        :param destination: location the knight is attempting to move to
+        :param dest_piece: Piece at destination
+        :return: True if valid move, False otherwise
         """
-        # capturing row and column information for source and destination squares
-        source_row = self._rows[source[1]]
+        # Row and column mapping for source and destination squares
         source_col = self._columns[source[0]]
-        dest_row = self._rows[destination[1]]
+        source_row = self._rows[source[1]]
         dest_col = self._columns[destination[0]]
+        dest_row = self._rows[destination[1]]
 
-        # absolute difference in the indices
         row_diff = abs(dest_row - source_row)
         col_diff = abs(dest_col - source_col)
 
-        # check if movement can happen in an L
         if (row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2):
+            if (
+                    (GameManager.get_current_player() == 'WHITE' and dest_piece not in self._white_pieces) or
+                    (GameManager.get_current_player() == 'BLACK' and dest_piece not in self._black_pieces)
+            ):
+                return True
+        else:
+            raise GameError("Not a valid Knight move")
+
+    def valid_queen_move(self, source, destination, dest_piece):
+        """
+        Checks that a queen is capable of moving from source to destination squares
+        Special parameters for queen: Can move like a rook or a bishop (along rank, columns, or diagonals)
+        :param source: location the queen is currently at
+        :param destination: location the queen is attempting to move to
+        :param dest_piece: Piece at destination
+        :return: True if valid move, False otherwise
+        """
+        # Checks if movement is like a rook
+        if self.valid_rook_move(source, destination, dest_piece):
+            return True
+        # Checks if movement is like a bishop
+        elif self.valid_bishop_move(source, destination, dest_piece):
             return True
         else:
-            return False
+            raise GameError("Not a valid Queen move")
 
-    def valid_queen_move(self, source, destination):
+    def valid_king_move(self, source, destination, dest_piece):
         """
-        Checks that a Queen is capable of moving from the source square to the destination square
-        Queens can move like a rook (along rows and columns) or a bishop (along diagonals)
-        no specific player restrictions
-        :param source: location the rook is currently at
-        :param destination: location the rook is attempting to move to
-        :return: True if possible, False otherwise
+        Checks that a king is capable of moving from source to destination squares
+        Special parameters for king: Can move one space in any direction
+        :param source: location the king is currently at
+        :param destination: location the king is attempting to move to
+        :param dest_piece: Piece at destination
+        :return: True if valid move, False otherwise
         """
-
-        # Checks if we move like a rook
-        if self.valid_rook_move(source, destination):
-            return True
-        # If not like a rook then check if it moves like a bishop
-        if self.valid_bishop_move(source, destination):
-            return True
-        else:
-            return False
-
-    def valid_king_move(self, source, destination):
-        """
-        Checks that a King is capable of moving from the source square to the destination square
-        King can move one square in any direction
-        no specific player restrictions
-        :param source: location the rook is currently at
-        :param destination: location the rook is attempting to move to
-        :return: True if possible, False otherwise
-        """
-        # capturing row and column information for source and destination squares
-        source_row = self._rows[source[1]]
+        # Row and column mapping for source and destination squares
         source_col = self._columns[source[0]]
-        dest_row = self._rows[destination[1]]
+        source_row = self._rows[source[1]]
         dest_col = self._columns[destination[0]]
+        dest_row = self._rows[destination[1]]
 
         row_diff = abs(dest_row - source_row)
         col_diff = abs(dest_col - source_col)
+
         if row_diff <= 1 and col_diff <= 1:
+            if (
+                    (GameManager.get_current_player() == 'WHITE' and dest_piece not in self._white_pieces) or
+                    (GameManager.get_current_player() == 'BLACK' and dest_piece not in self._black_pieces)
+            ):
+                return True
+        else:
+            raise GameError("Not a valid King move")
+
+    def valid_falcon_move(self, source, destination, dest_piece):
+        """
+        Checks that a falcon is capable of moving from source to destination squares
+        Special parameters for falcon: Move forward like a bishop and backwards like a rook
+        :param source: location the falcon is currently at
+        :param destination: location the falcon is attempting to move to
+        :param dest_piece: Piece at destination
+        :return: True if valid move, False otherwise
+        """
+        source_row = self._rows[source[1]]
+        dest_row = self._rows[destination[1]]
+
+        # determine the 'forward' direction based on current player
+        if GameManager.get_current_player() == 'WHITE':
+            direction = -1
+        else:
+            direction = 1
+
+        # Check if we are moving up or down on the board (dest_row > source_row) means moving down on the board
+        if dest_row > source_row:
+            if direction == -1:
+                return self.valid_rook_move(source, destination, dest_piece)
+            else:
+                return self.valid_bishop_move(source, destination, dest_piece)
+        elif dest_row < source_row:
+            if direction == -1:
+                return self.valid_bishop_move(source, destination, dest_piece)
+            else:
+                return self.valid_rook_move(source, destination, dest_piece)
+        else:
+            raise GameError("Not a valid Falcon move")
+
+    def valid_hunter_move(self, source, destination, dest_piece):
+        """
+        Checks that a hunter is capable of moving from source to destination squares
+        Special parameters for hunter: Move forward like a rook and backwards like a bishop
+        :param source: location the hunter is currently at
+        :param destination: location the hunter is attempting to move to
+        :param dest_piece: Piece at destination
+        :return: True if valid move, False otherwise
+        """
+        source_row = self._rows[source[1]]
+        dest_row = self._rows[destination[1]]
+
+        # determine the 'forward' direction based on current player
+        if GameManager.get_current_player() == 'WHITE':
+            direction = -1
+        else:
+            direction = 1
+
+        # Check if we are moving up or down on the board (dest_row > source_row) means moving down on the board
+        if dest_row > source_row:
+            if direction == -1:
+                return self.valid_bishop_move(source, destination, dest_piece)
+            else:
+                return self.valid_rook_move(source, destination, dest_piece)
+        elif dest_row < source_row:
+            if direction == -1:
+                return self.valid_rook_move(source, destination, dest_piece)
+            else:
+                return self.valid_bishop_move(source, destination, dest_piece)
+        else:
+            raise GameError("Not a valid Hunter move")
+
+
+class PathChecker:
+    """
+    Checks the path between source and destination squares to determine if the move can be made
+    """
+    @staticmethod
+    def get_valid_path(chessboard, source, dest):
+        """
+        Static Method to determine the type of movement and calls the valid check move method
+        :param chessboard: chessboard object
+        :param source: location we are moving from
+        :param dest: location we are moving to
+        :return: True if path is clear, false otherwise
+        """
+        # Knights can jump over pieces, hence only need to check that the destination is empty or an opponent's piece
+        if chessboard.get_piece(source).lower() == 'n':
+            if chessboard.get_piece(dest) == '_':
+                return True
+            elif(
+                    (GameManager.get_current_player() == 'WHITE' and chessboard.get_piece(dest).islower()) or
+                    (GameManager.get_current_player() == 'BLACK' and chessboard.get_piece(dest).isupper())
+            ):
+                return True
+        else:
+            # Get source & Destination coordinates
+            source_col = GameManager.get_column_mapping()[source[0]]
+            source_row = GameManager.get_row_mapping()[source[1]]
+            dest_col = GameManager.get_column_mapping()[dest[0]]
+            dest_row = GameManager.get_row_mapping()[dest[1]]
+
+            # Check vertical path
+            if source_col == dest_col:
+                return PathChecker.check_vertical(chessboard, source, dest)
+
+            # Check horizontal Path
+            if source_row == dest_row:
+                return PathChecker.check_horizontal(chessboard, source, dest)
+
+            # Check diagonal path
+            if abs(dest_col - source_col) == abs(dest_row - source_row):
+                return PathChecker.check_diagonal(chessboard, source, dest)
+
+    @staticmethod
+    def check_vertical(chessboard, source, dest):
+        """
+        Checks each row from the source to the destination to check if the path is clear
+        :param chessboard: chessboard object
+        :param source: square we are moving from
+        :param dest: square we are moving to
+        :return: True if path is clear, False otherwise
+        """
+        dest_row = GameManager.get_row_mapping()[dest[1]]
+        src_row = GameManager.get_row_mapping()[source[1]]
+        src_col = GameManager.get_column_mapping()[source[0]]
+
+        # if we are only moving one row, check destination is empty or that piece belongs to the opponent
+        if abs(dest_row - src_row) == 1:
+            if chessboard.get_piece(dest) == '_':
+                return True
+            elif(
+                    (GameManager.get_current_player() == 'WHITE' and chessboard.get_piece(dest).islower()) or
+                    (GameManager.get_current_player() == 'BLACK' and chessboard.get_piece(dest).isupper())
+            ):
+                return True
+            else:
+                return False
+        else:
+            # Set the movement direction
+            direction = 1 if dest_row > src_row else -1
+
+            # Iterate through each row in the column starting at one after the source row checking for obstructions
+            for row in range(src_row + direction, dest_row, direction):
+                if chessboard.get_board()[row][src_col] != '_':
+                    return False
             return True
-        else:
-            return False
 
-    def valid_falcon_move(self, current_player, source, destination):
+    @staticmethod
+    def check_horizontal(chessboard, source, dest):
         """
-        Checks that a falcon is capable of moving from the source square to the destination square
-        Falcon moves forward like a bishop and backwards like a rook cannot move along rank (row)
-        Moving forward/backward is different depending on whose turn it is
-        :param current_player: 'White' or 'Black'
-        :param source: location the rook is currently at
-        :param destination: location the rook is attempting to move to
-        :return: True if possible, False otherwise
+        Checks each column from the source to the destination to check if the path is clear
+        :param chessboard: chessboard object
+        :param source: square we are moving from
+        :param dest: square we are moving to
+        :return: True if path is clear, False otherwise
         """
-        # capturing row and column information for source and destination squares
-        source_row = self._rows[source[1]]
-        dest_row = self._rows[destination[1]]
+        src_row = GameManager.get_row_mapping()[source[1]]
+        src_col = GameManager.get_column_mapping()[source[0]]
+        dest_col = GameManager.get_column_mapping()[dest[0]]
 
-        # Determining the 'forward' direction based on current player
-        if current_player == 'WHITE':
-            forward_direction = -1
-        else:
-            forward_direction = 1
-
-        # Check if we are moving up or down on the board (dest_row > source_row) means we are moving down
-        if dest_row > source_row:
-            # Checking if current player is white or black
-            if forward_direction == -1:
-                # if we are moving down on the board, and its white's turn we are moving backwards
-                return self.valid_rook_move(source, destination)
-            else:  # if current player is black
-                return self.valid_bishop_move(source, destination)
-        # else if we are moving up
-        elif dest_row < source_row:
-            if forward_direction == -1:
-                # if we are moving up we are moving forwards
-                return self.valid_bishop_move(source, destination)
+        # if we are only moving one column, check destination is empty or piece belongs to opponent
+        if abs(dest_col - src_col) == 1:
+            if chessboard.get_piece(dest) == '_':
+                return True
+            elif(
+                    (GameManager.get_current_player() == 'WHITE' and chessboard.get_piece(dest).islower()) or
+                    (GameManager.get_current_player() == 'BLACK' and chessboard.get_piece(dest).isupper())
+            ):
+                return True
             else:
-                return self.valid_rook_move(source, destination)
+                return False
         else:
-            return False
+            # Setting movement direction
+            direction = 1 if dest_col > src_col else -1
 
-    def valid_hunter_move(self, current_player, source, destination):
+            # Iterate through each column in the row, starting at one after the source col checking for any obstructions
+            for col in range(src_col + direction, dest_col, direction):
+                if chessboard.get_board()[src_row][col] != '_':
+                    return False
+            return True
+
+    @staticmethod
+    def check_diagonal(chessboard, source, dest):
         """
-        Checks that a hunter is capable of moving from the source square to the destination square
-        hunter moves forward like a rook and backwards like a bishop, cannot move along rank (row)
-        Moving forward/backward is different depending on whose turn it is
-        :param current_player: 'White' or 'Black'
-        :param source: location the rook is currently at
-        :param destination: location the rook is attempting to move to
-        :return: True if possible, False otherwise
+        Checks the diagonal from the source to the destination to check if the path is clear
+        :param chessboard: chessboard object
+        :param source: square we are moving from
+        :param dest: square we are moving to
+        :return: True if path is clear, False otherwise
         """
-        # capturing row and column information for source and destination squares
-        source_row = self._rows[source[1]]
-        dest_row = self._rows[destination[1]]
+        src_col = GameManager.get_column_mapping()[source[0]]
+        src_row = GameManager.get_row_mapping()[source[1]]
+        dest_col = GameManager.get_column_mapping()[dest[0]]
+        dest_row = GameManager.get_row_mapping()[dest[1]]
 
-        # Determining the 'forward' direction based on current player
-        if current_player == 'WHITE':
-            forward_direction = -1
+        # if we are only moving one space, check destination is empty or piece belongs to opponent
+        if abs(dest_col - src_col) == 1 and abs(dest_row - src_row) == 1:
+            if chessboard.get_piece(dest) == '_':
+                return True
+            elif(
+                    (GameManager.get_current_player() == 'WHITE' and chessboard.get_piece(dest).islower()) or
+                    (GameManager.get_current_player() == 'BLACK' and chessboard.get_piece(dest).isupper())
+            ):
+                return True
+            else:
+                return False
         else:
-            forward_direction = 1
+            # Determine movement direction
+            col_direction = 1 if dest_col > src_col else -1
+            row_direction = 1 if dest_row > src_row else -1
 
-        # checking if we are moving forward or backwards, dest_row > source_row means we are moving down
-        if dest_row > source_row:
-            if forward_direction == -1:
-                # if we are white and moving down on the board we are moving backwards
-                return self.valid_bishop_move(source, destination)
-            else:
-                return self.valid_rook_move(source, destination)
-        # dest_row < source_row means we are moving up on the board
-        elif dest_row < source_row:
-            if forward_direction == -1:
-                # if we are white and moving up on the board we are moving forwards
-                return self.valid_rook_move(source, destination)
-            else:
-                return self.valid_bishop_move(source, destination)
-        else:
-            return False
+            # Iterate over each diagonal between the source and destination checking for obstructions
+            for diagonal in range(1, abs(dest_col - src_col)):
+                current_col = src_col + diagonal * col_direction
+                current_row = src_row + diagonal * row_direction
+                if chessboard.get_board()[current_row][current_col] != '_':
+                    return False
+            return True
 
 
 class Chessboard:
     """
-    Initializes the chessboard, and handles the checking logic for every move call
+    Initializes the chessboard, and handles checking the logic for valid move calls
     It should get and set pieces on the board
-    It should also help manage if a fairy piece can be entered onto the board
-    It interacts with the Pieces class in order to ensure that a move is valid
+    It should also check if a fairy piece can be entered onto the board
     """
 
     def __init__(self):
         """
-         initializes an instance of the pieces class
-         uses the class methods of the GameManger to get columns and row mappings
-         initializes an empty 2D list which will be the board
-         calls the initialize_board() method to display the board
-         """
-        # initialize instance of the pieces class
+        Initializes instance of the pieces class
+        Initialize variables necessary for method implementation
+        Initializes and empty list to keep track of fairy pieces
+        """
+        # Initializes instance of pieces class
         self._pieces = Pieces()
 
-        # getting the column mappings from game manager
-        self._columns = GameManager.get_columns()
+        # Get row and column mappings from game manager
+        self._columns = GameManager.get_column_mapping()
+        self._rows = GameManager.get_row_mapping()
 
-        # getting the row mappings from game manager
-        self._rows = GameManager.get_rows()
-
-        # list of player pieces
+        # Getting piece and captured piece information
         self._white_pieces = GameManager.get_white_pieces()
         self._black_pieces = GameManager.get_black_pieces()
 
-        # Initialize empty list to keep track of entered fairy pieces
+        # Initialize empty list to keep track of entered fairy pieces and checked required pieces
         self._entered_fairy_pieces = []
+        self._checked_pieces = []
 
-        # Setting the empty 2D list for the board and then filling it
+        # Initializes the chessboard as an empty 2D list and calls the filling method
         self._board = [['_' for _ in range(8)] for _ in range(8)]
         self.initialize_board()
 
     def initialize_board(self):
         """
-        Sets the initial positions of pieces on the board White pieces are UPPERCASE; Black pieces lowercase
-        :return:  initial positions for the print_board method
+        Sets the initial positions of pieces on the board
+        White player pieces are UPPERCASE
+        Black Player pieces are lowercase
+        :return: starting chessboard
         """
-
-        # Black Pieces
+        # Black pieces
         self._board[0] = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r']
         self._board[1] = ['p'] * 8
 
-        # White Pieces
-        self._board[7] = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+        # White pieces
         self._board[6] = ['P'] * 8
-        # self.print_board()
+        self._board[7] = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
 
     def set_piece(self, source, destination):
         """
-        Attempts to move a piece on the chessboard and updates the board if true
-        :param source: square we are moving from
-        :param destination: square we are moving to
-        :return: True if the move can be successfully made, False otherwise
+        Attempts to move a piece on the chessboard and if the move is a valid move, updates the board
+        :param source: Square we are moving from
+        :param destination: Square we are moving to
+        :return: updated move on the chessboard if possible, false otherwise
         """
+        # Validation test 1 - Checking the squares specified are on the chessboard
+        if not self.valid_square(source) or not self.valid_square(destination):
+            raise GameError(f"Invalid Move: Either {source} or {destination} does not exist on the chessboard")
 
-        """ 
-        Initial Validation Checks:
-        1) Check that the source square, and the destination square passed exist on the chessboard
-        2) Interact with Pieces class to ensure that the piece at the source square can legally make the desired move
-        3) Check if anything is stopping the movement from the source to the destination square
-        """
-
-        # Initial Validation Check 1
-        if not self.get_valid_square(source) or not self.get_valid_square(destination):
-            return False
-
-        # Initialize variables for the source piece and destination piece
         source_piece = self.get_piece(source)
-        destination_piece = self.get_piece(destination)
+        dest_piece = self.get_piece(destination)
+        current_player = GameManager.get_current_player()
 
-        # Initial Validation Check 2
-        if not self._pieces.get_valid_move(source_piece, destination_piece, source, destination):
-            return False
+        # Validation test 2 - If the source piece is '_' we aren't making a valid move
+        if source_piece == '_':
+            raise GameError(f"There is no piece at {source}. Try again")
 
-        # Initial Validation Check 3
-        if not self.path_check(source_piece, destination_piece, source, destination):
-            return False
+        # Validation test 3 - Checks that the source piece belongs to the current player
+        if (
+                (current_player == 'WHITE' and source_piece.islower()) or
+                (current_player == 'BLACK' and source_piece.isupper())
+        ):
+            raise GameError("You are trying to move your opponents piece!")
 
-        # If move is legal use the chessboard to check the path (knights can skip over pieces so no need to check path)
-        # if not (piece_being_moved.lower() == 'n'):
-        #    if not self.clear_path_check(source_row, source_col, dest_row, dest_col, piece_at_dest):
-        #        return False
+        # Validation test 4 - Checking that the move is a legal move according to chess rules
+        self._pieces.get_valid_move(source_piece, dest_piece, source, destination)
 
-        # Splitting source and destination into column and rows for indexing
-        source_col = self._columns[source[0]]
+        # Validation test 5 - Checking that there is no obstructions in the path
+        if not PathChecker.get_valid_path(self, source, destination):
+            raise GameError("Move cannot be made, a piece is in the way")
+
+        # splitting the source and destination into columns and rows for move indexing
+        source_col = GameManager.get_column_mapping()[source[0]]
         source_row = self._rows[source[1]]
         dest_col = self._columns[destination[0]]
         dest_row = self._rows[destination[1]]
 
-        # Move is successful so set the source square to '_'
+        # Setting the source to '_', updating captured pieces list, and moving piece into the destination
         self._board[source_row][source_col] = '_'
+        if dest_piece != '_':
+            GameManager.set_captured_pieces(dest_piece, GameManager.get_turn_count())
 
-        # Update captured pieces list and update the game state
-        if destination_piece != '_':
-            GameManager.set_captured_pieces(destination_piece, GameManager.get_turn_counter())
-
-        # move piece into destination square
         self._board[dest_row][dest_col] = source_piece
 
-        # self.print_board()
         return True
 
-    def get_valid_square(self, square):
+    def set_fairy_piece(self, fairy_piece, destination):
         """
-        Checks if the location specified is within the bounds of the chessboard
-        :param square: source/destination location for the piece
-        :return: True if on the chessboard
+        Attempts to enter a fairy piece onto the chessboard
+        :param fairy_piece: name of piece being entered
+        :param destination: location on chessboard the piece is being placed onto
+        :return: Sets fairy piece on the chessboard if possible, False otherwise
         """
-        if square[0] not in self._columns or square[1] not in self._rows:
-            return False
-        return True
-
-    def set_fairy_piece(self, piece, square):
-        """
-        Enters the fairy piece onto the chess board
-        - checks that the name of the piece being entered is appropriate
-        - checks that the square being entered is appropriate
-        - Checks if captured pieces holds the required piece needed to enter a fairy piece into the game
-        :param piece: determines if fairy piece can be entered onto the board
-        :param square: location on chessboard where fairy piece is entering
-        :return: True if fairy piece can be set, False otherwise
-        """
-        piece_to_be_entered = piece
-
-        # Check if the piece name is correct
-        if piece not in {'F', 'H', 'f', 'h'}:
-            return False
-
-        # Check if piece has already been entered
-        if piece in self._entered_fairy_pieces:
-            return False
-
-        # Checks that the entry square meets all the requirements
-        if not self.get_valid_fairy_square(square):
-            return False
-
+        # Current player information
         current_player = GameManager.get_current_player()
-        captured_pieces = GameManager.get_captured_pieces()
 
-        # Checks if captured pieces holds the correct information
-        if current_player == 'White':
-            required_pieces = ['Q', 'R', 'N', 'B']
-        else:
-            required_pieces = ['q', 'r', 'n', 'b']
+        # Setting required captured piece list
+        required_pieces = ['Q', 'R', 'N', 'B'] if current_player == 'WHITE' else ['q', 'r', 'n', 'b']
 
-        # Verifying captured piece and turn requirement
+
+        # Ensure square we are place the fairy piece at is on the chessboard
+        if not self.valid_square(destination):
+            raise GameError(f"{destination} is not on the chessboard")
+
+        # split row and column for indexing
+        col = self._columns[destination[0]]
+        row = self._rows[destination[1]]
+
+        # Check that the correct player is trying to enter the correct piece name
         if (
-                (current_player == 'WHITE' and piece_to_be_entered.islower()) or
-                (current_player == 'BLACK' and piece_to_be_entered.isupper())
+                (current_player == 'WHITE' and fairy_piece.isupper()) or
+                (current_player == 'BLACK' and fairy_piece.islower())
         ):
-            return False
-        else:
-            for required_piece in required_pieces:
-                for piece, turn_count in captured_pieces:
-                    if piece == required_piece and turn_count < GameManager.get_turn_counter():
-                        col = self._columns[square[0]]
-                        row = self._rows[square[1]]
-                        self._entered_fairy_pieces.append(piece_to_be_entered)
-                        self._board[row][col] = piece_to_be_entered
-                        # self.print_board()
-
-                        return True
-
-    def get_valid_fairy_square(self, square):
-        """
-        Determines if a fairy piece can be entered into a square
-        :param square: location the fairy piece is being entered into
-        :return: True if allowed, False otherwise
-        """
-        # Ensure square is on the chessboard
-        if not self.get_valid_square(square):
-            return False
-
-        # Splitting column and row for easier indexing
-        col = self._columns[square[0]]
-        row = self._rows[square[1]]
-
-        # Verify that the entry square is empty
-        if self._board[row][col] != '_':
-            return False
-
-        # Verify entry into home ranks
-        if GameManager.get_current_player() == 'WHITE':
-            return row in [6, 7]
-        elif GameManager.get_current_player() == 'BLACK':
-            return row in [0, 1]
-        else:
-            return False
-
-    def path_check(self, source_piece, destination_piece, source, destination):
-        """
-        Determines the type of movement between source and destination and calls the appropriate check
-        :param source_piece: piece we are moving
-        :param destination_piece: piece at the destination
-        :param source: location on chessboard we are moving from
-        :param destination: location on chessboard we are moving to
-        :return: True if path is valid, False otherwise
-        """
-        current_player = GameManager.get_current_player()
-        # Check if the source piece is a knight, it can skip over pieces aka move directly to destination
-        if source_piece.lower() == 'n':
-            # check that the destination piece is either '_' or belongs to the opponent
-            if destination_piece == '_':
-                return True
-            elif (
-                    (current_player == 'WHITE' and destination_piece.islower()) or
-                    (current_player == 'BLACK' and destination_piece.isupper())
-            ):
-                return True
+            # Check if the piece has already been entered
+            if fairy_piece in self._entered_fairy_pieces:
+                raise GameError(f"The fairy piece {fairy_piece} is already on the board")
             else:
-                return False
+                if current_player == 'WHITE':
+                    if row in [6, 7] and self.get_piece(destination) == '_':
+                        for required_piece in required_pieces:
+                            for piece, turn_count in GameManager.get_captured_white_pieces():
+                                if piece == required_piece and turn_count < GameManager.get_turn_count():
+                                    self._entered_fairy_pieces.append(fairy_piece)
+                                    self._board[row][col] = fairy_piece
+                                    return True
+                    else:
+                        raise GameError(f"Fairy pieces can only be entered on a blank square in your home two ranks")
+                else:
+                    if row in [0, 1] and self.get_piece(destination) == '_':
+                        for required_piece in required_pieces:
+                            for piece, turn_count in GameManager.get_captured_black_pieces():
+                                if piece == required_piece and turn_count < GameManager.get_turn_count():
 
-        # Splitting source and destination into column and rows for indexing
-        source_col = self._columns[source[0]]
-        source_row = self._rows[source[1]]
-        dest_col = self._columns[destination[0]]
-        dest_row = self._rows[destination[1]]
-
-        # check if we are making a vertical move
-        if source_col == dest_col:
-            return self.vertical_path_check(current_player, source_col, source_row, dest_row, source_piece,
-                                            destination_piece)
-        # Check if we are moving horizontally
-        elif source_row == dest_row:
-            return self.horizontal_path_check(current_player, source_row, source_col, dest_col, destination_piece)
-        # Check if we are moving diagonally
-        elif abs(dest_col - source_col) == abs(dest_row - source_row):
-            return self.diagonal_path_check(current_player, source_row, source_col, dest_row, dest_col,
-                                            destination_piece)
-
-    def vertical_path_check(self, current_player, source_col, source_row, dest_row, source_piece, destination_piece):
-        """
-        Vertically checks each row of the column between the source and destination to determine if path is clear
-        If only moving one row, check that the destination piece belongs to opposite player
-        Otherwise set the direction and iterate through each row, making sure that the squares are empty
-        Pawns have an additional functionality where they can't capture forward only in diagonals
-        :param current_player: 'White' or 'Black'
-        :param source_col: column we are moving within
-        :param source_row: row in our source column that we are moving from
-        :param dest_row: row in our source column that we are moving towards
-        :param source_piece: piece at the source square
-        :param destination_piece: piece at the destination square
-        :return: True if path is clear, False otherwise
-        """
-        # Check if we are only moving one row
-        if abs(dest_row - source_row) == 1:
-            # Check destination piece is empty
-            if destination_piece == '_':
-                return True
-            # If it is not empty does it belong to the opponent
-            elif (
-                    (current_player == 'WHITE' and destination_piece.islower()) or
-                    (current_player == 'BLACK' and destination_piece.isupper())
-            ):
-                # if the piece is a pawn we can't capture forward
-                if source_piece.lower() == 'p':
-                    return False
-                return True
-
-            # It is not empty, and belongs to the current player
-            else:
-                return False
+                                    self._entered_fairy_pieces.append(fairy_piece)
+                                    self._board[row][col] = fairy_piece
+                                    return True
+                    else:
+                        raise GameError(f"Fairy pieces can only be entered on a blank square in your home two ranks")
         else:
-            # Determine movement direction
-            direction = 1 if dest_row > source_row else -1
-
-            # Initialize row index
-            row = source_row + direction
-
-            # Iterate through each row in column (Inclusive)
-            while row != dest_row + direction:
-                if (
-                        (current_player == 'WHITE' and destination_piece.islower()) or
-                        (current_player == 'BLACK' and destination_piece.isupper())
-                ):
-                    if source_piece.lower() == 'p':
-                        return False
-                if self._board[row][source_col] != '_':
-                    return False
-                row += direction
-            return True
-
-    def horizontal_path_check(self, current_player, source_row, source_col, dest_col, destination_piece):
-        """
-        Horizontally checks each column of the row between the source and destination to determine if path is clear
-        If only moving one column, check that the destination piece belongs to opposite player
-        Otherwise set the direction and iterate through each column, making sure squares are empty
-        :param current_player: 'White' or 'Black'
-        :param source_row: row we are moving within
-        :param source_col: column in our source row that we are starting from
-        :param dest_col: column in our source row that we are moving towards
-        :param destination_piece: piece at the destination square
-        :return: True if path is clear, False otherwise
-        """
-        # Checking if we are only moving one column
-        if abs(dest_col - source_col) == 1:
-            # Checks if destination piece is empty
-            if destination_piece == '_':
-                return True
-            # If it is not empty does it belong to the opponent
-            elif (
-                    (current_player == 'WHITE' and destination_piece.islower()) or
-                    (current_player == 'BLACK' and destination_piece.isupper())
-            ):
-                return True
-            # It is not empty, and belongs to the current player
-            else:
-                return False
-        else:
-            # Determine movement direction
-            direction = 1 if dest_col > source_col else -1
-
-            # Iterate through each column in the row checking for any obstructions
-            for col in range(source_col + direction, dest_col, direction):
-                if self._board[source_row][col] != '_':
-                    return False
-            return True
-
-    def diagonal_path_check(self, current_player, source_row, source_col, dest_row, dest_col, destination_piece):
-        """
-        Checks the diagonal pathway from source to destination for any obstructions
-        :param current_player: 'WHITE' or 'BLACK'
-        :param source_row: row index we are moving from
-        :param source_col: col index we are moving from
-        :param dest_row: row index we are moving to
-        :param dest_col: col index we are moving to
-        :param destination_piece: piece at destination square
-        :return: True if path is clear, false otherwise
-        """
-        # Check if we are moving diagonally one square
-        if abs(dest_col - source_col) == 1 and abs(dest_row - source_row) == 1:
-            # Check if it is empty
-            if destination_piece == '_':
-                return True
-            # If it is not empty does it belong to the opponent
-            elif (
-                    (current_player == 'WHITE' and destination_piece.islower()) or
-                    (current_player == 'BLACK' and destination_piece.isupper())
-            ):
-                return True
-            # It is not empty, and belongs to the current player
-            else:
-                return False
-        else:
-            # Determine the movement directions
-            col_direction = 1 if dest_col > source_col else -1
-            row_direction = 1 if dest_row > source_row else -1
-
-            # iterate over each square in the diagonal path between source and destination
-            current_row = source_row + row_direction
-            current_col = source_col + col_direction
-
-            while current_row != dest_row and current_col != dest_col:
-                if self._board[current_row][current_col] != '_':
-                    return False
-                current_row += row_direction
-                current_col += col_direction
-            return True
+            raise GameError(f"The fairy piece {fairy_piece} does not belong to you!")
 
     def get_piece(self, square):
         """
-        Gets the piece that is at the specified square
-        :param square: location on the chessboard
-        :return: piece in that location
+        Checks if a square on the chessboard contains a piece or not
+        :param square: The location on the chessboard we are checking
+        :return: The name of the piece as the specified location
         """
         col = self._columns[square[0]]
         row = self._rows[square[1]]
 
         return self._board[row][col]
+
+    def valid_square(self, square):
+        """
+        Ensure that the squares are on the chessboard
+        :param square: location on the board we are checking
+        :return: True if square is on the chessboard
+        """
+        if square[0] not in self._columns or square[1] not in self._rows:
+            return False
+        return True
 
     def get_board(self):
         return self._board
@@ -807,88 +755,96 @@ class Chessboard:
 
 class ChessVar:
     """
-    Runs the game, allowing user to make moves, enter fairy pieces, and returns the state of the game
+    Responsible for running the game, allowing user to make moves, enter fairy pieces, and return the state of the game
     """
 
     def __init__(self):
         """
-        Initializes an instance of the chessboard class in order to run the game
-        Resets the game a new instance of ChessVar is called
+        reset GameManager everytime the game is called
+        Initializes an instance of the chessboard to run the game
+        Resets the game everytime a new instance of ChessVar is called
         """
+        GameManager.reset_game()
         self._chessboard = Chessboard()
-        self._reset_game = GameManager.set_reset_game()
+        # Calls start method for the game
         self.start_game()
 
     def start_game(self):
-        print("Setting up the game")
+        """
+        :return: Beginning game board
+        """
+        print("Setting up the chessboard")
         self.print_board()
-        print("Board ready: White its your move!\n")
+        print("Board ready: it is the White players turn to move first!\n")
+        print("If at any point you wish to exit the game, please type 'quit'\n")
+        # Checking that the game is still ongoing
+        while GameManager.get_game_state() == "UNFINISHED":
+            self.make_move()
+        print(f"Game over! {GameManager.get_game_state()}")
 
-    def make_move(self, source, destination):
+    def make_move(self):
+        if GameManager.get_turn_count() == 1:
+            move = self.get_user_input("Please Enter your move (e.g. 'e2, e4'): ")
+        else:
+            move = self.get_user_input(f"It's {GameManager.get_current_player()} players turn!" +
+                                       " Please Enter your move (e.g. 'e2, e4'): ")
+        try:
+            source, destination = move.split(",")
+            source = source.strip()
+            destination = destination.strip().upper()
+
+            # Checking if source is 1 char indicating fairy piece entry
+            if len(source) == 1:
+                if source in ['F', 'H', 'f', 'h']:
+                    self.enter_fairy_piece(source, destination)
+                else:
+                    raise GameError(f" {source} is not one of the valid fairy pieces (F/H for white, f/h for black)")
+            else:
+                source = source.upper()
+                if self._chessboard.set_piece(source, destination):
+                    self.print_board()
+                    GameManager.set_turn_count()
+                    GameManager.set_current_player()
+                    GameManager.set_game_state()
+                else:
+                    return False
+        except GameError as e:
+            print(f"Invalid Move: {e}")
+
+    def enter_fairy_piece(self, piece, destination):
+        try:
+            if self._chessboard.set_fairy_piece(piece, destination):
+                self.print_board()
+                GameManager.set_turn_count()
+                GameManager.set_current_player()
+            else:
+                raise GameError("Fairy Piece entry requirements have not been met")
+        except GameError as e:
+            print(f"Invalid Move: {e}")
+
+    def get_user_input(self, prompt):
         """
-        Attempts to make a move on the chessboard
-        :param source: location on the board which we are attempting to move from
-        :param destination: location on the board which we are attempting to move to
-        :return: True if move can be made, False otherwise
+        :return: user input for move
         """
-        print(f"Current Player: {GameManager.get_current_player()}")
-        print(f"Attempting to move {self._chessboard.get_piece(source)} at {source} to {destination}\n")
-
-        # Checks if the game is over via GameManager
-        if GameManager.get_game_state() != 'UNFINISHED':
-            return False
-
-        # Attempts to make the move, if self._chessboard.set_piece is false, return false
-        if not self._chessboard.set_piece(source, destination):
-            return False
-
-        # on move success do the following:
-
-        # Increment the turn counter
-        GameManager.set_turn_counter()
-
-        # Update current player
-        GameManager.set_current_player()
-
-        # Update the game state
-        GameManager.set_game_state()
-
-        self.print_board()
-
-    def enter_fairy_piece(self, piece_name, source):
-        """
-        Checks if we can enter a fairy piece onto the board and the square it will enter into
-        :param piece_name: 'F' 'H' for white fairy/hunter 'f', 'h' for black fairy/hunter
-        :param source: square we are entering into
-        :return: True if allowed, False otherwise
-        """
-        print(f"Turn {GameManager.get_turn_counter()}")
-        print(f"Current Player: {GameManager.get_current_player()}")
-        print(f"Attempting to enter fairy piece: {piece_name} into square {source}\n")
-
-        # Checks if game is over
-        if GameManager.get_game_state() != 'UNFINISHED':
-            return False
-
-        # Attempts to enter fairy piece onto the chessboard
-        if not self._chessboard.set_fairy_piece(piece_name, source):
-            return False
-
-        # Increment the turn counter
-        GameManager.set_turn_counter()
-
-        # Update current player
-        GameManager.set_current_player()
-
-        # Update the game state
-        GameManager.set_game_state()
-
-    def get_game_state(self):
-        """
-        Gets the game state from the Game Manager, currently doesn't work til lnext move is called
-        :return: 'UNFINISHED' 'WHITE_WON' 'BLACK_WON'
-        """
-        return GameManager.get_game_state()
+        while True:
+            user_input = input(prompt)
+            # allows user to quit at any point
+            if user_input.lower() == 'quit':
+                print("Exiting the game.")
+                exit()
+            # Checking user input isn't blank
+            elif user_input:
+                # splits input into source and destination squares
+                squares = user_input.split(",")
+                if len(squares) != 2:
+                    print("Invalid input: enter 2 arguments")
+                    continue
+                source = squares[0].strip()
+                destination = squares[1].strip()
+                if len(source) > 2 or len(destination) != 2:
+                    print("Invalid input: Source and destination should be in form e2, e4")
+                    continue
+                return f"{source}, {destination}"
 
     def print_board(self):
         """
@@ -914,26 +870,8 @@ class ChessVar:
             print('  ║')
 
         # Print bottom border
-        print(' ╚' + '═══' * 7 + '╝')
-
-        if GameManager.get_game_state() != 'UNFINISHED':
-            print(f"Game over! {GameManager.get_game_state()}")
-            return True
-
-        if GameManager.get_turn_counter() == 1:
-            return True
-        else:
-            print(f"{GameManager.get_current_player()}, you're up!\n")
+        print(' ╚' + '═══' * 7 + '╝\n')
 
 
 if __name__ == "__main__":
     game = ChessVar()
-    game.make_move('e2', 'e4')  # e2 e4 white true
-    game.make_move('d7', 'd5')  # d7 d5 black true
-    game.make_move('d1', 'd4')  # d1 d4 white false
-    game.make_move('d1', 'g4')  # d1 g4 white true
-    game.make_move('d8', 'f6')  # d8 f6 black false
-    game.make_move('d8', 'd6')  # d8 d6 black true
-    game.make_move('g4', 'c8')
-    game.make_move('d6', 'b4')
-    game.make_move('c8', 'c7')
