@@ -1,18 +1,21 @@
-# Falcon_Hunter_Chess
-Complete coding projects, including both classwork projects and personal projects
+This game is designed to be a fully functional modified Chess game, that is easily accessible for Chess first timers.
+This game differentiates between player pieces by letter case, the white player pieces are all uppercase & the black player pieces lowercase
 
-This Chess game is of the Falcon Hunter ruleset variant, and does not implement high level moves such as castling or en passant
-Additonally, this game does not take into account Checks or Checkmates, only ending when the opposing King was captured
+Modification:
+  - Falcon - Hunter variant ruleset
+  - Game ends when king is captured, as such check/checkmate is not taken into account
+  - Higher level techniques like casteling and en passant are not incorporated
 
-Rules for Falcon & Hunter pieces:
-- Both players Falcon and Hunter pieces start off the chessboard
-- A player may enter either thier falcon or their hunter piece on any empty square of their home two ranks (rows) if the following condition has been met:
-  - A play must lose either their queen, rook, bishop or knight
-  - The entry of the falcon or hunter piece must come on any subsequent turn after the specified pieces have been captured
-- The remaining falcon/hunter piece can be entered after a second required piece has been lost at any point (does not need to be after entering the first fairy piece)
-- Entering a fairy piece constitutes a turn
-- Falcons: Move forward like a bishop, backwards like a rook
-- Hunters: Move forward like a rook, backwards like a bishop
-- Neither piece can move along rank (row)
+Falcon - Hunter rules:
+  - Falcons (F, f): Move forwards like a Bishop and move backwards like a Rook
+  - Hunters (H, h): Move forwards like a Rook and backwards like a Bishop
+  - Neither piece can move along rank (row)
+  - Both pieces start off of the chessboard
+  - Can be placed on any empty space of the players home two ranks on any subsequent turn after that player has lost a Queen, Bishop, Knight or Rook
+  - Entering a fairy piece constitutes as a turn
 
-
+This script is interactive for the user, with players entering moves in the format of [source] , [destination] for example: e2, e4
+  - Note: Fairy pieces can be entered by notation [piece name], [entry location] for example: F, e2 (White) or h, d7 (Black) 
+After a successful move is made an updated chessboard will be printed to the terminal showing the valid move
+Invalid moves will return an error message and prompt the player to try again 
+The game will automatically end when a King has been captured
